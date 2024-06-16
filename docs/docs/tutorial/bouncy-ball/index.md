@@ -145,7 +145,7 @@ allow you to group and organize objects into a single container,
 making it easier to manage and duplicate your animation elements.
 
 First, let's start by turning our animation layer into a precomposition:
-Right click on **Layer** in the timeline, and select _Precompose_ from
+Right click on **Ellipse** in the timeline, and select _Precompose_ from
 the context menu.
 
 ![Precomposed Layer](./precomposed.png)
