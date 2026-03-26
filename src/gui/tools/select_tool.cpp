@@ -9,6 +9,7 @@
 #include <variant>
 
 #include "model/shapes/path.hpp"
+#include "model/assets/composition.hpp"
 #include "command/structure_commands.hpp"
 #include "command/animation_commands.hpp"
 #include "math/geom.hpp"
@@ -332,6 +333,46 @@ private:
         if ( drag_mode == None && (event.key() == Qt::Key_Backspace) )
         {
             event.window->delete_selected();
+            event.accept();
+        }
+        else if ( drag_mode == None && event.key() == Qt::Key_Return )
+        {
+            auto selection = event.scene->cleaned_selection();
+            if ( selection.empty() )
+                return;
+
+            if ( event.modifiers() & Qt::ShiftModifier )
+            {
+                // Shift+Enter: select parent of current selection
+                std::vector<model::VisualNode*> parents;
+                for ( auto node : selection )
+                {
+                    auto parent = node->docnode_fuzzy_parent();
+                    if ( parent && !parent->is_instance<model::Composition>() )
+                    {
+                        // Avoid duplicates
+                        if ( std::find(parents.begin(), parents.end(), parent) == parents.end() )
+                            parents.push_back(parent);
+                    }
+                }
+                if ( !parents.empty() )
+                    event.scene->user_select(parents, graphics::DocumentScene::Replace);
+            }
+            else
+            {
+                // Enter: select all children of current selection
+                std::vector<model::VisualNode*> children;
+                for ( auto node : selection )
+                {
+                    for ( auto child : node->docnode_visual_children() )
+                    {
+                        if ( child->docnode_selectable() )
+                            children.push_back(child);
+                    }
+                }
+                if ( !children.empty() )
+                    event.scene->user_select(children, graphics::DocumentScene::Replace);
+            }
             event.accept();
         }
         else if ( drag_mode == DragObject && event.key() == Qt::Key_Control )
