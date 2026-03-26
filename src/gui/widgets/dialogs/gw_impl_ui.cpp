@@ -255,6 +255,51 @@ void GlaxnimateWindow::Private::init_actions()
         }
     });
 
+    // Insert keyframe for all animatable properties of selected objects
+    auto action_insert_keyframe = new QAction(QIcon::fromTheme("keyframe-add"), tr("Insert Keyframe"), parent);
+    action_insert_keyframe->setShortcut(QKeySequence("K", QKeySequence::PortableText));
+    ui.menu_object->addAction(action_insert_keyframe);
+    connect(action_insert_keyframe, &QAction::triggered, parent, [this]{
+        auto selection = cleaned_selection();
+        if ( selection.empty() || !current_document )
+            return;
+
+        auto time = current_document->current_time();
+        auto* undo = &current_document->undo_stack();
+
+        undo->beginMacro(tr("Insert Keyframe"));
+
+        for ( auto node : selection )
+        {
+            // Keyframe the node's own animatable properties
+            for ( auto prop : node->properties() )
+            {
+                if ( !(prop->traits().flags & model::PropertyTraits::Animated) )
+                    continue;
+                auto* anim = static_cast<model::AnimatableBase*>(prop);
+                QVariant current_val = anim->value();
+                undo->push(new command::SetKeyframe(anim, time, current_val, true));
+            }
+
+            // Also keyframe the transform sub-object properties
+            if ( auto transform_prop = node->get_property("transform") )
+            {
+                auto* sub = static_cast<model::SubObjectProperty<model::Transform>*>(transform_prop);
+                auto* transform = sub->get();
+                for ( auto prop : transform->properties() )
+                {
+                    if ( !(prop->traits().flags & model::PropertyTraits::Animated) )
+                        continue;
+                    auto* anim = static_cast<model::AnimatableBase*>(prop);
+                    QVariant current_val = anim->value();
+                    undo->push(new command::SetKeyframe(anim, time, current_val, true));
+                }
+            }
+        }
+
+        undo->endMacro();
+    });
+
     connect(ui.action_quit, &QAction::triggered, parent, &GlaxnimateWindow::close);
     connect(ui.action_move_to, &QAction::triggered, parent, &GlaxnimateWindow::move_to);
     connect(ui.action_validate_tgs, &QAction::triggered, parent, &GlaxnimateWindow::validate_tgs);
