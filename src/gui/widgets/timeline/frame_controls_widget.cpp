@@ -8,6 +8,7 @@
 #include "ui_frame_controls_widget.h"
 
 #include <cmath>
+#include <QToolButton>
 
 #include "glaxnimate_app.hpp"
 
@@ -19,10 +20,22 @@ FrameControlsWidget::FrameControlsWidget(QWidget* parent)
 {
     d->setupUi(this);
 
-#ifdef Q_OS_ANDROID
-    d->layout->setMargin(0);
-    d->layout->setSpacing(0);
-#endif
+    // Compact layout for all platforms
+    d->layout->setContentsMargins(4, 2, 4, 2);
+    d->layout->setSpacing(1);
+    setFixedHeight(28);
+
+    // Compact button sizes
+    int btn_size = 22;
+    for ( QToolButton* btn : findChildren<QToolButton*>() )
+    {
+        btn->setFixedSize(btn_size, btn_size);
+        btn->setIconSize(QSize(14, 14));
+    }
+
+    // Compact spin box
+    d->spin_frame->setFixedHeight(22);
+    d->spin_frame->setMaximumWidth(70);
 
     d->button_record->setIcon(QIcon::fromTheme("keyframe-record"));
 
