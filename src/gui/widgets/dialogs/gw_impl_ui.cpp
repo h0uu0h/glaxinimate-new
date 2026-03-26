@@ -81,6 +81,16 @@ void GlaxnimateWindow::Private::setupUi(bool restore_state, bool debug, Glaxnima
 {
     this->parent = parent;
     ui.setupUi(parent);
+
+    // Enable modern dock behavior: free nesting, tabbing, animated transitions
+    parent->setDockNestingEnabled(true);
+    parent->setDockOptions(
+        QMainWindow::AnimatedDocks |
+        QMainWindow::AllowNestedDocks |
+        QMainWindow::AllowTabbedDocks |
+        QMainWindow::GroupedDragging
+    );
+
     redo_text = ui.action_redo->text();
     undo_text = ui.action_undo->text();
 
@@ -114,6 +124,17 @@ void GlaxnimateWindow::Private::setupUi(bool restore_state, bool debug, Glaxnima
 
     // Docks
     init_docks();
+
+    // Make all dock widgets freely floatable, closable, and movable
+    for ( QDockWidget* dock : parent->findChildren<QDockWidget*>() )
+    {
+        dock->setFeatures(
+            QDockWidget::DockWidgetMovable |
+            QDockWidget::DockWidgetFloatable |
+            QDockWidget::DockWidgetClosable
+        );
+        dock->setAllowedAreas(Qt::AllDockWidgetAreas);
+    }
 
     // Menus
     init_menus();

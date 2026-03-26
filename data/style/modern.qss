@@ -1,0 +1,331 @@
+/* Glaxnimate Modern Style */
+
+/* Global defaults */
+QMainWindow, QDialog {
+    font-size: 13px;
+}
+
+/* Remove heavy dock widget title bars — sleek flat tabs */
+QDockWidget {
+    titlebar-close-icon: url(none);
+    titlebar-normal-icon: url(none);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+QDockWidget::title {
+    background: palette(window);
+    border-bottom: 1px solid palette(dark);
+    padding: 6px 8px;
+    text-align: left;
+}
+
+QDockWidget::close-button, QDockWidget::float-button {
+    background: transparent;
+    border: none;
+    padding: 2px;
+    icon-size: 12px;
+}
+
+QDockWidget::close-button:hover, QDockWidget::float-button:hover {
+    background: palette(midlight);
+    border-radius: 3px;
+}
+
+/* Tab bars — flat modern tabs */
+QTabBar::tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: palette(button-text);
+    min-width: 40px;
+}
+
+QTabBar::tab:selected {
+    border-bottom: 2px solid palette(highlight);
+    color: palette(text);
+}
+
+QTabBar::tab:hover:!selected {
+    border-bottom: 2px solid palette(mid);
+    color: palette(text);
+}
+
+QTabWidget::pane {
+    border: none;
+    border-top: 1px solid palette(dark);
+}
+
+/* Toolbars — borderless, compact */
+QToolBar {
+    background: palette(window);
+    border: none;
+    spacing: 2px;
+    padding: 2px;
+}
+
+QToolBar::separator {
+    background: palette(dark);
+    width: 1px;
+    margin: 4px 2px;
+}
+
+QToolButton {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 4px;
+    margin: 1px;
+}
+
+QToolButton:hover {
+    background: palette(midlight);
+}
+
+QToolButton:pressed {
+    background: palette(mid);
+}
+
+QToolButton:checked {
+    background: palette(highlight);
+    color: palette(highlighted-text);
+}
+
+/* Scrollbars — thin overlay style */
+QScrollBar:vertical {
+    background: transparent;
+    width: 8px;
+    margin: 0;
+    border: none;
+}
+
+QScrollBar::handle:vertical {
+    background: palette(mid);
+    min-height: 30px;
+    border-radius: 4px;
+    margin: 2px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: palette(light);
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0;
+}
+
+QScrollBar:horizontal {
+    background: transparent;
+    height: 8px;
+    margin: 0;
+    border: none;
+}
+
+QScrollBar::handle:horizontal {
+    background: palette(mid);
+    min-width: 30px;
+    border-radius: 4px;
+    margin: 2px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: palette(light);
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    width: 0;
+}
+
+QScrollBar::add-page, QScrollBar::sub-page {
+    background: transparent;
+}
+
+/* Menu bar — minimal */
+QMenuBar {
+    background: palette(window);
+    border-bottom: 1px solid palette(dark);
+    padding: 2px 0;
+    font-size: 13px;
+}
+
+QMenuBar::item {
+    background: transparent;
+    padding: 4px 10px;
+    border-radius: 4px;
+}
+
+QMenuBar::item:selected {
+    background: palette(midlight);
+}
+
+/* Menus — clean popup */
+QMenu {
+    background: palette(base);
+    border: 1px solid palette(dark);
+    border-radius: 6px;
+    padding: 4px 0;
+    font-size: 13px;
+}
+
+QMenu::item {
+    padding: 6px 28px 6px 12px;
+}
+
+QMenu::item:selected {
+    background: palette(highlight);
+    color: palette(highlighted-text);
+    border-radius: 4px;
+    margin: 0 4px;
+}
+
+QMenu::separator {
+    height: 1px;
+    background: palette(dark);
+    margin: 4px 8px;
+}
+
+/* Inputs — modern flat */
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
+    background: palette(base);
+    border: 1px solid palette(dark);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    selection-background-color: palette(highlight);
+}
+
+QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {
+    border: 1px solid palette(highlight);
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 20px;
+}
+
+QComboBox QAbstractItemView {
+    background: palette(base);
+    border: 1px solid palette(dark);
+    border-radius: 4px;
+    selection-background-color: palette(highlight);
+}
+
+/* Sliders — thin track, round thumb */
+QSlider::groove:horizontal {
+    border: none;
+    height: 4px;
+    background: palette(dark);
+    border-radius: 2px;
+}
+
+QSlider::handle:horizontal {
+    background: palette(highlight);
+    width: 14px;
+    height: 14px;
+    margin: -5px 0;
+    border-radius: 7px;
+}
+
+QSlider::handle:horizontal:hover {
+    background: palette(link);
+}
+
+/* Group boxes — borderless */
+QGroupBox {
+    border: none;
+    margin-top: 8px;
+    padding-top: 4px;
+    font-weight: 500;
+    font-size: 12px;
+}
+
+QGroupBox::title {
+    color: palette(button-text);
+    subcontrol-origin: margin;
+    left: 4px;
+    padding: 0 4px;
+}
+
+/* Status bar */
+QStatusBar {
+    background: palette(window);
+    border-top: 1px solid palette(dark);
+    font-size: 12px;
+}
+
+/* Push buttons */
+QPushButton {
+    background: palette(button);
+    border: 1px solid palette(dark);
+    border-radius: 4px;
+    padding: 5px 16px;
+    font-size: 12px;
+}
+
+QPushButton:hover {
+    background: palette(midlight);
+}
+
+QPushButton:pressed {
+    background: palette(mid);
+}
+
+QPushButton:default {
+    border: 1px solid palette(highlight);
+}
+
+/* Tree and list views — clean */
+QTreeView, QListView, QTableView {
+    background: palette(base);
+    border: none;
+    alternate-background-color: palette(alternate-base);
+    font-size: 12px;
+}
+
+QTreeView::item, QListView::item {
+    padding: 3px 4px;
+    border-radius: 3px;
+}
+
+QTreeView::item:selected, QListView::item:selected {
+    background: palette(highlight);
+    color: palette(highlighted-text);
+}
+
+QTreeView::item:hover:!selected, QListView::item:hover:!selected {
+    background: palette(midlight);
+}
+
+QHeaderView::section {
+    background: palette(window);
+    border: none;
+    border-bottom: 1px solid palette(dark);
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Splitter handles — subtle */
+QSplitter::handle {
+    background: palette(dark);
+}
+
+QSplitter::handle:horizontal {
+    width: 1px;
+}
+
+QSplitter::handle:vertical {
+    height: 1px;
+}
+
+/* Tooltips */
+QToolTip {
+    background: palette(tooltip-base);
+    color: palette(tooltip-text);
+    border: 1px solid palette(dark);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+}

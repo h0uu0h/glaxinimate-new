@@ -58,6 +58,7 @@ const QMimeData *GlaxnimateApp::get_clipboard_data()
 #else
 
 #include <QDir>
+#include <QFile>
 #include <QPalette>
 #include <QClipboard>
 
@@ -166,6 +167,15 @@ void GlaxnimateApp::on_initialize()
 
 
     QDir().mkpath(backup_path());
+
+    // Load modern stylesheet
+    QString qss_path = data_file("style/modern.qss");
+    QFile qss_file(qss_path);
+    if ( qss_file.open(QIODevice::ReadOnly | QIODevice::Text) )
+    {
+        setStyleSheet(qss_file.readAll());
+        qss_file.close();
+    }
 }
 
 void GlaxnimateApp::on_initialize_settings()
