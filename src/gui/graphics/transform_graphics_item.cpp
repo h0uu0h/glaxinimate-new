@@ -72,6 +72,11 @@ public:
     TransformGraphicsItem* parent;
     Canvas* canvas = nullptr;
 
+    // Rotation state — track start angle for relative rotation
+    qreal rot_start_angle = 0;      // angle of mouse at drag start
+    qreal rot_start_rotation = 0;   // object rotation at drag start
+    bool rot_dragging = false;
+
     QPointF get_tl() const { return cache.topLeft(); }
     QPointF get_tr() const { return cache.topRight(); }
     QPointF get_br() const { return cache.bottomRight(); }
@@ -260,7 +265,10 @@ graphics::TransformGraphicsItem::TransformGraphicsItem(
         if ( &h == &d->handles[Private::Anchor] )
             connect(h.handle, &MoveHandle::drag_finished, this, &TransformGraphicsItem::commit_anchor);
         else if ( &h == &d->handles[Private::Rot] )
+        {
+            connect(h.handle, &MoveHandle::drag_starting, this, &TransformGraphicsItem::drag_rot_start);
             connect(h.handle, &MoveHandle::drag_finished, this, &TransformGraphicsItem::commit_rot);
+        }
         else if ( &h == &d->handles[Private::Position] )
         {
             connect(h.handle, &MoveHandle::drag_starting, this, &TransformGraphicsItem::drag_pos_start);
@@ -327,8 +335,11 @@ void graphics::TransformGraphicsItem::drag_tl(const QPointF& p, Qt::KeyboardModi
     qreal scale_x;
     bool has_x = d->find_scale_x(p, d->cache.left(), scale_x);
 
-    if ( modifiers & Qt::ControlModifier )
-        scale_x = scale_y = (scale_x + scale_y) / 2;
+    if ( modifiers & Qt::ShiftModifier )
+    {
+        qreal uniform = (has_x && has_y) ? (scale_x + scale_y) / 2 : (has_x ? scale_x : scale_y);
+        scale_x = scale_y = uniform;
+    }
 
     if ( has_x || has_y )
         d->push_command(d->transform->scale, QVector2D(scale_x, scale_y), false);
@@ -341,8 +352,11 @@ void graphics::TransformGraphicsItem::drag_tr(const QPointF& p, Qt::KeyboardModi
     qreal scale_x;
     bool has_x = d->find_scale_x(p, d->cache.right(), scale_x);
 
-    if ( modifiers & Qt::ControlModifier )
-        scale_x = scale_y = (scale_x + scale_y) / 2;
+    if ( modifiers & Qt::ShiftModifier )
+    {
+        qreal uniform = (has_x && has_y) ? (scale_x + scale_y) / 2 : (has_x ? scale_x : scale_y);
+        scale_x = scale_y = uniform;
+    }
 
     if ( has_x || has_y )
         d->push_command(d->transform->scale, QVector2D(scale_x, scale_y), false);
@@ -355,8 +369,11 @@ void graphics::TransformGraphicsItem::drag_br(const QPointF& p, Qt::KeyboardModi
     qreal scale_x;
     bool has_x = d->find_scale_x(p, d->cache.right(), scale_x);
 
-    if ( modifiers & Qt::ControlModifier )
-        scale_x = scale_y = (scale_x + scale_y) / 2;
+    if ( modifiers & Qt::ShiftModifier )
+    {
+        qreal uniform = (has_x && has_y) ? (scale_x + scale_y) / 2 : (has_x ? scale_x : scale_y);
+        scale_x = scale_y = uniform;
+    }
 
     if ( has_x || has_y )
         d->push_command(d->transform->scale, QVector2D(scale_x, scale_y), false);
@@ -369,8 +386,11 @@ void graphics::TransformGraphicsItem::drag_bl(const QPointF& p, Qt::KeyboardModi
     qreal scale_x;
     bool has_x = d->find_scale_x(p, d->cache.left(), scale_x);
 
-    if ( modifiers & Qt::ControlModifier )
-        scale_x = scale_y = (scale_x + scale_y) / 2;
+    if ( modifiers & Qt::ShiftModifier )
+    {
+        qreal uniform = (has_x && has_y) ? (scale_x + scale_y) / 2 : (has_x ? scale_x : scale_y);
+        scale_x = scale_y = uniform;
+    }
 
     if ( has_x || has_y )
         d->push_command(d->transform->scale, QVector2D(scale_x, scale_y), false);
@@ -430,17 +450,35 @@ void graphics::TransformGraphicsItem::drag_rot(const QPointF& p, Qt::KeyboardMod
     QPointF anchor = d->transform_matrix.map(d->transform->anchor_point.get());
     QPointF diff = anchor - p_new;
     qreal angle_rad = -std::atan2(diff.x(), diff.y());
-    // angle in [-180, 180]
-    qreal angle = qRadiansToDegrees(angle_rad);
+    qreal current_mouse_angle = qRadiansToDegrees(angle_rad);
 
-    if ( modifiers & Qt::ControlModifier )
-        angle = qRound(angle/15) * 15;
+    // On first call after drag start, initialize the start angle
+    if ( !d->rot_dragging )
+    {
+        d->rot_start_angle = current_mouse_angle;
+        d->rot_start_rotation = d->transform->rotation.get();
+        d->rot_dragging = true;
+    }
 
-    // Ensure continuous rotations
-    qreal old_angle = d->transform->rotation.get();
-    qreal delta = math::fmod((angle - old_angle) + 180, 360.) - 180;
+    // Relative delta from drag start
+    qreal delta = current_mouse_angle - d->rot_start_angle;
 
-    d->push_command(d->transform->rotation, old_angle + delta, false);
+    // Normalize delta to [-180, 180] for continuous rotation
+    delta = math::fmod(delta + 180, 360.) - 180;
+
+    qreal new_angle = d->rot_start_rotation + delta;
+
+    // Shift = snap to 15° increments
+    if ( modifiers & Qt::ShiftModifier )
+        new_angle = qRound(new_angle / 15.0) * 15.0;
+
+    d->push_command(d->transform->rotation, new_angle, false);
+}
+
+void graphics::TransformGraphicsItem::drag_rot_start(const QPointF&, Qt::KeyboardModifiers)
+{
+    // Reset rotation tracking — drag_rot will pick up the initial angle
+    d->rot_dragging = false;
 }
 
 void graphics::TransformGraphicsItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* opt, QWidget*)
@@ -485,6 +523,7 @@ void graphics::TransformGraphicsItem::commit_anchor()
 
 void graphics::TransformGraphicsItem::commit_rot()
 {
+    d->rot_dragging = false;
     d->push_command(d->transform->rotation, d->transform->rotation.value(), true);
 }
 
