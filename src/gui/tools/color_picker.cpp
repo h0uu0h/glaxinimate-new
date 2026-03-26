@@ -17,7 +17,7 @@ public:
     QString id() const override { return "color-picker"; }
     QIcon icon() const override { return QIcon::fromTheme("color-picker"); }
     QString name() const override { return QObject::tr("Color Picker"); }
-    QKeySequence key_sequence() const override { return QKeySequence(QObject::tr("F7"), QKeySequence::PortableText); }
+    QKeySequence key_sequence() const override { return QKeySequence(QObject::tr("I"), QKeySequence::PortableText); }
     static int static_group() noexcept { return Registry::Style;  }
     int group() const noexcept override { return static_group(); }
 

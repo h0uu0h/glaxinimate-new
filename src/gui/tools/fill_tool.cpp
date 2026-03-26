@@ -23,7 +23,7 @@ public:
     QString id() const override { return "fill"; }
     QIcon icon() const override { return QIcon::fromTheme("fill-color"); }
     QString name() const override { return QObject::tr("Fill"); }
-    QKeySequence key_sequence() const override { return QKeySequence(QObject::tr("F8"), QKeySequence::PortableText); }
+    QKeySequence key_sequence() const override { return QKeySequence(QObject::tr("G"), QKeySequence::PortableText); }
     static int static_group() noexcept { return Registry::Style; }
     int group() const noexcept override { return static_group(); }
 

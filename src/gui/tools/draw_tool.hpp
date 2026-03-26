@@ -23,7 +23,7 @@ public:
     QString id() const override { return "draw-bezier"; }
     QIcon icon() const override { return QIcon::fromTheme("draw-bezier-curves"); }
     QString name() const override { return QObject::tr("Draw Bezier"); }
-    QKeySequence key_sequence() const override { return QKeySequence(QObject::tr("F3"), QKeySequence::PortableText); }
+    QKeySequence key_sequence() const override { return QKeySequence(QObject::tr("P"), QKeySequence::PortableText); }
     static int static_group() noexcept { return Registry::Draw;  }
     int group() const noexcept override { return static_group(); }
 

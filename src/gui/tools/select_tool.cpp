@@ -27,7 +27,7 @@ public:
     QString id() const override { return "select"; }
     QIcon icon() const override { return QIcon::fromTheme("edit-select"); }
     QString name() const override { return QObject::tr("Select"); }
-    QKeySequence key_sequence() const override { return QKeySequence(QObject::tr("F1"), QKeySequence::PortableText); }
+    QKeySequence key_sequence() const override { return QKeySequence(QObject::tr("V"), QKeySequence::PortableText); }
     static int static_group() noexcept { return Registry::Core; }
     int group() const noexcept override { return static_group(); }
 

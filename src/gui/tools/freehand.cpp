@@ -16,7 +16,7 @@ public:
     QString id() const override { return "draw-freehand"; }
     QIcon icon() const override { return QIcon::fromTheme("draw-freehand"); }
     QString name() const override { return QObject::tr("Draw Freehand"); }
-    QKeySequence key_sequence() const override { return QKeySequence(QObject::tr("F6"), QKeySequence::PortableText); }
+    QKeySequence key_sequence() const override { return QKeySequence(QObject::tr("B"), QKeySequence::PortableText); }
     static int static_group() noexcept { return Registry::Draw; }
     int group() const noexcept override { return static_group(); }
 

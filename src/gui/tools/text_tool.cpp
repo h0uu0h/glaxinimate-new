@@ -26,7 +26,7 @@ public:
     QString id() const override { return "text"; }
     QIcon icon() const override { return QIcon::fromTheme("draw-text"); }
     QString name() const override { return QObject::tr("Draw Text"); }
-    QKeySequence key_sequence() const override { return QKeySequence(QObject::tr("F8"), QKeySequence::PortableText); }
+    QKeySequence key_sequence() const override { return QKeySequence(QObject::tr("T"), QKeySequence::PortableText); }
     static int static_group() noexcept { return Registry::Shape; }
     int group() const noexcept override { return static_group(); }
 

@@ -652,7 +652,7 @@ private:
         return device->read((char*)buf, buf_size);
     }
 
-    static int write_packet(void *opaque, uint8_t *buf, int buf_size)
+    static int write_packet(void *opaque, const uint8_t *buf, int buf_size)
     {
         QIODevice* device = (QIODevice*)opaque;
         return device->write((char*)buf, buf_size);
