@@ -27,6 +27,8 @@
 #include "model/shapes/round_corners.hpp"
 #include "model/shapes/offset_path.hpp"
 #include "model/shapes/zig_zag.hpp"
+#include "model/transform.hpp"
+#include "command/animation_commands.hpp"
 #include "io/io_registry.hpp"
 
 #include "widgets/dialogs/io_status_dialog.hpp"
@@ -211,6 +213,48 @@ void GlaxnimateWindow::Private::init_actions()
     connect(ui.action_lower_to_bottom, &QAction::triggered, parent, &GlaxnimateWindow::layer_bottom);
     connect(ui.action_group, &QAction::triggered, parent, &GlaxnimateWindow::group_shapes);
     connect(ui.action_ungroup, &QAction::triggered, parent, &GlaxnimateWindow::ungroup_shapes);
+
+    // Center anchor point action
+    auto action_center_anchor = new QAction(QIcon::fromTheme("transform-move"), tr("Center Anchor Point"), parent);
+    action_center_anchor->setShortcut(QKeySequence("Alt+.", QKeySequence::PortableText));
+    ui.menu_object->addSeparator();
+    ui.menu_object->addAction(action_center_anchor);
+    connect(action_center_anchor, &QAction::triggered, parent, [this]{
+        auto selection = cleaned_selection();
+        if ( selection.empty() )
+            return;
+
+        for ( auto node : selection )
+        {
+            auto transform_prop = node->get_property("transform");
+            if ( !transform_prop )
+                continue;
+
+            auto transform = static_cast<model::SubObjectProperty<model::Transform>*>(transform_prop)->get();
+            QRectF bbox = node->local_bounding_rect(node->time());
+            QPointF center = bbox.center();
+            QPointF anchor_old = transform->anchor_point.get();
+
+            if ( qFuzzyCompare(center.x(), anchor_old.x()) && qFuzzyCompare(center.y(), anchor_old.y()) )
+                continue;
+
+            // Move anchor to center, adjust position to compensate
+            QPointF p1 = transform->transform_matrix(transform->time()).map(QPointF(0, 0));
+            transform->anchor_point.set(center);
+            QPointF p2 = transform->transform_matrix(transform->time()).map(QPointF(0, 0));
+            QPointF pos = transform->position.get() - p2 + p1;
+            transform->anchor_point.set(anchor_old);
+
+            node->document()->undo_stack().push(new command::SetMultipleAnimated(
+                tr("Center anchor point"),
+                true,
+                {&transform->anchor_point, &transform->position},
+                QVariant::fromValue(center),
+                QVariant::fromValue(pos)
+            ));
+        }
+    });
+
     connect(ui.action_quit, &QAction::triggered, parent, &GlaxnimateWindow::close);
     connect(ui.action_move_to, &QAction::triggered, parent, &GlaxnimateWindow::move_to);
     connect(ui.action_validate_tgs, &QAction::triggered, parent, &GlaxnimateWindow::validate_tgs);
