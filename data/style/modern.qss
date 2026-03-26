@@ -309,12 +309,13 @@ QTreeView::item:hover:!selected, QListView::item:hover:!selected {
     background: rgba(255, 255, 255, 0.04);
 }
 
-QTreeView::branch:has-children:closed {
-    image: none;
+/* Layer view — ensure icon columns are visible in dark theme */
+LayerView {
+    icon-size: 16px;
 }
 
-QTreeView::branch:has-children:open {
-    image: none;
+LayerView::item {
+    min-height: 22px;
 }
 
 QHeaderView {

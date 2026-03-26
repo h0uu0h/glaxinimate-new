@@ -58,8 +58,13 @@ void glaxnimate::gui::LayerView::set_base_model(item_models::DocumentModelBase* 
 
     header()->setSectionResizeMode(item_models::DocumentNodeModel::ColumnName, QHeaderView::Stretch);
     header()->setSectionResizeMode(item_models::DocumentNodeModel::ColumnColor, QHeaderView::ResizeToContents);
+    header()->setSectionResizeMode(item_models::DocumentNodeModel::ColumnVisible, QHeaderView::Fixed);
+    header()->setSectionResizeMode(item_models::DocumentNodeModel::ColumnLocked, QHeaderView::Fixed);
+    header()->resizeSection(item_models::DocumentNodeModel::ColumnVisible, 24);
+    header()->resizeSection(item_models::DocumentNodeModel::ColumnLocked, 24);
     setItemDelegateForColumn(item_models::DocumentNodeModel::ColumnColor, &d->color_delegate);
     header()->hideSection(item_models::DocumentNodeModel::ColumnUsers);
+    setIconSize(QSize(16, 16));
 
 #ifdef Q_OS_ANDROID
     int icon_size = style()->pixelMetric(QStyle::PM_SmallIconSize, nullptr, nullptr);
