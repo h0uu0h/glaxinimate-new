@@ -50,6 +50,12 @@ void glaxnimate::gui::LayerView::set_base_model(item_models::DocumentModelBase* 
 
     setModel(&d->proxy_model);
 
+    // Auto-expand parent when children are inserted
+    connect(&d->proxy_model, &QAbstractItemModel::rowsInserted, this, [this](const QModelIndex& parent, int, int) {
+        if ( parent.isValid() )
+            expand(parent);
+    });
+
     header()->setSectionResizeMode(item_models::DocumentNodeModel::ColumnName, QHeaderView::Stretch);
     header()->setSectionResizeMode(item_models::DocumentNodeModel::ColumnColor, QHeaderView::ResizeToContents);
     setItemDelegateForColumn(item_models::DocumentNodeModel::ColumnColor, &d->color_delegate);

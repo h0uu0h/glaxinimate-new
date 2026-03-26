@@ -406,6 +406,7 @@ void GlaxnimateWindow::Private::switch_composition(model::Composition* new_comp,
         action->setEnabled(comps.count(action->data().value<model::Composition*>()));
 
     ui.view_document_node->set_composition(comp);
+    ui.view_document_node->expandAll();
     ui.timeline_widget->set_composition(comp);
     scene.set_composition(comp);
     scene.user_select(comp_selections[i].selection, graphics::DocumentScene::Replace);
