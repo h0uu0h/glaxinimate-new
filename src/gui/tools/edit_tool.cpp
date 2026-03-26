@@ -55,6 +55,19 @@ public:
         MoldCurve
     };
 
+    struct PathCache
+    {
+        QTransform forward_transform;
+        QTransform inverse_transform;
+
+        PathCache() = default;
+
+        PathCache(graphics::BezierItem* item)
+        :   forward_transform(item->target_object()->transform_matrix(item->target_object()->time())),
+            inverse_transform(forward_transform.inverted())
+        {}
+    };
+
     struct Selection
     {
         struct SelectedBezier
@@ -158,9 +171,21 @@ public:
             QVariantList before;
             QVariantList after;
 
+            QPointF constrained_pos = event.scene_pos;
+
+            // Shift: constrain to horizontal or vertical axis
+            if ( event.modifiers() & Qt::ShiftModifier )
+            {
+                QPointF delta = constrained_pos - drag_start;
+                if ( qAbs(delta.x()) > qAbs(delta.y()) )
+                    constrained_pos.setY(drag_start.y());
+                else
+                    constrained_pos.setX(drag_start.x());
+            }
+
             for ( auto& p : selected )
             {
-                p.second.drag(event.scene_pos, props, before, after);
+                p.second.drag(constrained_pos, props, before, after);
             }
 
             event.window->document()->push_command(new command::SetMultipleAnimated(
@@ -171,19 +196,66 @@ public:
                 commit
             ));
         }
-    };
 
-    struct PathCache
-    {
-        QTransform forward_transform;
-        QTransform inverse_transform;
+        // Snap to nearby unselected nodes, returns snapped scene position
+        QPointF snap_to_nodes(const QPointF& scene_pos, const std::map<graphics::BezierItem*, PathCache>& active, qreal snap_threshold)
+        {
+            QPointF best_pos = scene_pos;
+            qreal best_dist = snap_threshold * snap_threshold;
 
-        PathCache() = default;
+            for ( const auto& [item, cache] : active )
+            {
+                const auto& bez = item->bezier();
+                const auto& sel_indices = item->selected_indices();
+                for ( int i = 0; i < bez.size(); i++ )
+                {
+                    // Skip selected nodes
+                    if ( selected.count(item) && sel_indices.count(i) )
+                        continue;
+                    QPointF node_scene = cache.forward_transform.map(bez[i].pos);
+                    qreal dist = math::length_squared(node_scene - scene_pos);
+                    if ( dist < best_dist )
+                    {
+                        best_dist = dist;
+                        best_pos = node_scene;
+                    }
+                }
+            }
+            return best_pos;
+        }
 
-        PathCache(graphics::BezierItem* item)
-        :   forward_transform(item->target_object()->transform_matrix(item->target_object()->time())),
-            inverse_transform(forward_transform.inverted())
-        {}
+        void drag_with_snap(const MouseEvent& event, bool commit, const std::map<graphics::BezierItem*, PathCache>& active, qreal snap_threshold)
+        {
+            QPointF constrained_pos = event.scene_pos;
+
+            // Shift: constrain axis + snap to nearest node
+            if ( event.modifiers() & Qt::ShiftModifier )
+            {
+                QPointF delta = constrained_pos - drag_start;
+                if ( qAbs(delta.x()) > qAbs(delta.y()) )
+                    constrained_pos.setY(drag_start.y());
+                else
+                    constrained_pos.setX(drag_start.x());
+
+                // Also try snapping
+                constrained_pos = snap_to_nodes(constrained_pos, active, snap_threshold);
+            }
+
+            std::vector<model::AnimatableBase*> props;
+            QVariantList before;
+            QVariantList after;
+
+            for ( auto& p : selected )
+                p.second.drag(constrained_pos, props, before, after);
+
+            event.window->document()->push_command(new command::SetMultipleAnimated(
+                QObject::tr("Drag nodes"),
+                props,
+                before,
+                after,
+                commit
+            ));
+        }
     };
 
     void add_bezier_editor(graphics::BezierItem* editor)
@@ -633,7 +705,7 @@ void tools::EditTool::mouse_move(const MouseEvent& event)
                 d->selection.start_drag();
                 [[fallthrough]];
             case Private::VertexDrag:
-                d->selection.drag(event, false);
+                d->selection.drag_with_snap(event, false, d->active, 10.0 / event.view->get_zoom_factor());
                 break;
             case Private::VertexAdd:
                 break;
@@ -751,7 +823,7 @@ void tools::EditTool::mouse_release(const MouseEvent& event)
                 d->selection.initial = nullptr;
                 break;
             case Private::VertexDrag:
-                d->selection.drag(event, true);
+                d->selection.drag_with_snap(event, true, d->active, 10.0 / event.view->get_zoom_factor());
                 d->selection.initial = nullptr;
                 break;
             case Private::VertexAdd:
@@ -841,6 +913,11 @@ void tools::EditTool::key_release(const KeyEvent& event)
             exit_add_point_mode();
             event.repaint();
         }
+        event.accept();
+    }
+    else if ( event.key() == Qt::Key_J && d->drag_mode == Private::None )
+    {
+        selection_merge();
         event.accept();
     }
 }
@@ -1004,6 +1081,88 @@ void tools::EditTool::add_point_mode()
 {
     d->drag_mode = Private::VertexAdd;
     set_cursor(Qt::DragCopyCursor);
+}
+
+void tools::EditTool::selection_merge()
+{
+    if ( d->selection.empty() )
+        return;
+
+    auto doc = d->selection.selected.begin()->first->target_object()->document();
+    command::UndoMacroGuard macro(QObject::tr("Merge Nodes"), doc, false);
+
+    for ( auto& [item, sel_bez] : d->selection.selected )
+    {
+        auto indices = item->selected_indices();
+        if ( indices.size() < 2 )
+            continue;
+
+        math::bezier::Bezier bez = item->bezier();
+        const qreal threshold = 1.0; // merge nodes within 1px
+
+        // Find pairs of selected nodes that overlap
+        // Work from highest index down so removal doesn't invalidate lower indices
+        std::vector<int> sorted_indices(indices.begin(), indices.end());
+        std::sort(sorted_indices.begin(), sorted_indices.end());
+
+        std::set<int> to_remove;
+        for ( int i = 0; i < (int)sorted_indices.size(); i++ )
+        {
+            int idx_a = sorted_indices[i];
+            if ( to_remove.count(idx_a) )
+                continue;
+
+            for ( int j = i + 1; j < (int)sorted_indices.size(); j++ )
+            {
+                int idx_b = sorted_indices[j];
+                if ( to_remove.count(idx_b) )
+                    continue;
+
+                qreal dist = math::length(bez[idx_a].pos - bez[idx_b].pos);
+                if ( dist <= threshold )
+                {
+                    // Merge b into a: keep a's pos, take b's tan_out, keep a's tan_in
+                    bez[idx_a].tan_out = bez[idx_b].tan_out;
+                    // If both are corner, keep corner; otherwise smooth
+                    if ( bez[idx_a].type != math::bezier::Corner || bez[idx_b].type != math::bezier::Corner )
+                        bez[idx_a].type = math::bezier::Smooth;
+                    to_remove.insert(idx_b);
+                }
+            }
+        }
+
+        if ( to_remove.empty() )
+            continue;
+
+        // Also handle closing: if first and last node overlap and path is open
+        if ( !bez.closed() && to_remove.empty() )
+        {
+            if ( sorted_indices.front() == 0 && sorted_indices.back() == bez.size() - 1 )
+            {
+                qreal dist = math::length(bez[0].pos - bez[bez.size()-1].pos);
+                if ( dist <= threshold )
+                {
+                    // Close the path instead of removing
+                    bez[0].tan_in = bez[bez.size()-1].tan_in;
+                    to_remove.insert(bez.size()-1);
+                    bez.set_closed(true);
+                }
+            }
+        }
+
+        if ( to_remove.empty() )
+            continue;
+
+        // Remove merged nodes (highest index first)
+        for ( auto it = to_remove.rbegin(); it != to_remove.rend(); ++it )
+            bez.remove_point(*it);
+
+        if ( !macro.started() )
+            macro.start();
+
+        item->clear_selected_indices();
+        item->set_bezier(bez);
+    }
 }
 
 void tools::EditTool::exit_add_point_mode()

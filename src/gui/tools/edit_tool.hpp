@@ -34,6 +34,7 @@ public:
     void selection_straighten();
     void selection_curve();
     void selection_dissolve();
+    void selection_merge();
 
     void add_point_mode();
 
