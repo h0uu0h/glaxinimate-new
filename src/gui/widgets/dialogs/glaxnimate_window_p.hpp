@@ -269,6 +269,7 @@ public:
     void cleanup_document();
     void to_path();
     void convert_to_path(const std::vector<model::ShapeElement*>& shapes, std::vector<model::ShapeElement*>* out);
+    void path_boolean_op(int op);
     void align(AlignDirection direction, AlignPosition position, bool outside);
     QPointF align_point(const QRectF& rect, AlignDirection direction, AlignPosition position);
     void dropped(const QMimeData* data);

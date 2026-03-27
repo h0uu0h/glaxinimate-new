@@ -33,6 +33,7 @@
 #include "widgets/shape_style/shape_style_preview_widget.hpp"
 
 #include "item_models/drag_data.hpp"
+#include "tools/path_boolean.hpp"
 
 model::Composition* GlaxnimateWindow::Private::current_composition()
 {
@@ -365,6 +366,123 @@ void GlaxnimateWindow::Private::to_path()
     }
 
     convert_to_path(shapes, nullptr);
+}
+
+void GlaxnimateWindow::Private::path_boolean_op(int op)
+{
+    auto selection = cleaned_selection();
+    if ( selection.size() < 2 || !current_document )
+        return;
+
+    // Convert selected shapes to paths first, collect bezier data
+    // We need exactly 2 shapes (subject and clip), take first two
+    model::ShapeElement* shape_a = nullptr;
+    model::ShapeElement* shape_b = nullptr;
+
+    for ( auto node : selection )
+    {
+        if ( auto shape = node->cast<model::ShapeElement>() )
+        {
+            if ( !shape_a )
+                shape_a = shape;
+            else if ( !shape_b )
+            {
+                shape_b = shape;
+                break;
+            }
+        }
+    }
+
+    if ( !shape_a || !shape_b )
+        return;
+
+    // Convert both to paths if they aren't already
+    std::vector<model::ShapeElement*> to_convert;
+    if ( !shape_a->cast<model::Path>() )
+        to_convert.push_back(shape_a);
+    if ( !shape_b->cast<model::Path>() )
+        to_convert.push_back(shape_b);
+
+    std::vector<model::ShapeElement*> converted;
+    convert_to_path(to_convert, &converted);
+
+    // Re-find the paths after conversion
+    model::Path* path_a = shape_a->cast<model::Path>();
+    model::Path* path_b = shape_b->cast<model::Path>();
+
+    if ( !path_a && !converted.empty() )
+        path_a = converted[0]->cast<model::Path>();
+    if ( !path_b && converted.size() > 1 )
+        path_b = converted[1]->cast<model::Path>();
+    if ( !path_b && converted.size() == 1 && path_a )
+        path_b = converted[0]->cast<model::Path>();
+
+    if ( !path_a || !path_b || path_a == path_b )
+        return;
+
+    // Get beziers with transforms applied
+    auto time = current_document->current_time();
+    QTransform trans_a = path_a->transform_matrix(time);
+    QTransform trans_b = path_b->transform_matrix(time);
+
+    math::bezier::Bezier bez_a = path_a->shape.get();
+    math::bezier::Bezier bez_b = path_b->shape.get();
+    bez_a.transform(trans_a);
+    bez_b.transform(trans_b);
+
+    std::vector<math::bezier::Bezier> subject = {bez_a};
+    std::vector<math::bezier::Bezier> clip = {bez_b};
+
+    // Perform boolean operation
+    auto bool_op = static_cast<tools::BooleanOp>(op);
+    auto results = tools::path_boolean(subject, clip, bool_op);
+
+    if ( results.empty() )
+        return;
+
+    // Determine the parent container for the result
+    auto* owner = path_a->owner();
+
+    // Build the result in an undo macro
+    QString op_name;
+    switch ( bool_op )
+    {
+        case tools::BooleanOp::Union:        op_name = tr("Union"); break;
+        case tools::BooleanOp::Difference:   op_name = tr("Difference"); break;
+        case tools::BooleanOp::Intersection: op_name = tr("Intersection"); break;
+        case tools::BooleanOp::Exclusion:    op_name = tr("Exclusion"); break;
+    }
+
+    command::UndoMacroGuard guard(op_name, current_document.get());
+
+    // Apply inverse of the first shape's parent transform to the result
+    QTransform parent_inv = path_a->docnode_fuzzy_parent()->transform_matrix(time).inverted();
+
+    // Add result paths
+    for ( size_t i = 0; i < results.size(); i++ )
+    {
+        results[i].transform(parent_inv);
+
+        auto new_path = std::make_unique<model::Path>(current_document.get());
+        new_path->shape.set(results[i]);
+        new_path->name.set(op_name + (results.size() > 1 ? QString(" %1").arg(i+1) : ""));
+
+        current_document->push_command(
+            new command::AddObject<model::ShapeElement>(
+                owner,
+                std::move(new_path),
+                path_a->position()
+            )
+        );
+    }
+
+    // Remove original shapes
+    current_document->push_command(
+        new command::RemoveObject<model::ShapeElement>(path_b, path_b->owner())
+    );
+    current_document->push_command(
+        new command::RemoveObject<model::ShapeElement>(path_a, path_a->owner())
+    );
 }
 
 void GlaxnimateWindow::Private::switch_composition(model::Composition* new_comp, int i)

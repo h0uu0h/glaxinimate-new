@@ -375,6 +375,21 @@ void GlaxnimateWindow::Private::init_actions()
         trace_dialog(parent->current_shape());
     });
     connect(ui.action_object_to_path, &QAction::triggered, parent, [this]{to_path();});
+
+    // Path boolean operations
+    ui.action_path_add->setEnabled(true);
+    ui.action_path_subtract->setEnabled(true);
+    ui.action_path_intersect->setEnabled(true);
+    ui.action_path_xor->setEnabled(true);
+    ui.action_path_add->setShortcut(QKeySequence("Ctrl+Shift+U", QKeySequence::PortableText));
+    ui.action_path_subtract->setShortcut(QKeySequence("Ctrl+Shift+D", QKeySequence::PortableText));
+    ui.action_path_intersect->setShortcut(QKeySequence("Ctrl+Shift+I", QKeySequence::PortableText));
+    ui.action_path_xor->setShortcut(QKeySequence("Ctrl+Shift+X", QKeySequence::PortableText));
+    connect(ui.action_path_add, &QAction::triggered, parent, [this]{ path_boolean_op(0); });
+    connect(ui.action_path_subtract, &QAction::triggered, parent, [this]{ path_boolean_op(1); });
+    connect(ui.action_path_intersect, &QAction::triggered, parent, [this]{ path_boolean_op(2); });
+    connect(ui.action_path_xor, &QAction::triggered, parent, [this]{ path_boolean_op(3); });
+
     connect(ui.action_lottie_preview, &QAction::triggered, parent, [this]{preview_lottie("svg");});
     connect(ui.action_lottie_canvas_preview, &QAction::triggered, parent, [this]{preview_lottie("canvas");});
     connect(ui.action_svg_preview, &QAction::triggered, parent, [this]{preview_svg();});

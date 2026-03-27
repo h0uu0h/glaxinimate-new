@@ -42,6 +42,7 @@ tools/ellipse_tool.cpp
 tools/rectangle_tool.cpp
 tools/draw_tool.cpp
 tools/edit_tool.cpp
+tools/path_boolean.cpp
 tools/star_tool.cpp
 tools/text_tool.cpp
 tools/draw_tool_base.cpp
@@ -193,7 +194,16 @@ configure_file(
 
 include_directories(${CMAKE_SOURCE_DIR}/external/QtAppSetup/src)
 include_directories(${CMAKE_SOURCE_DIR}/src/core)
-add_library(${LIB_NAME_GUI} OBJECT ${SOURCES})
+# Clipper2 (path boolean operations)
+set(CLIPPER2_DIR ${CMAKE_SOURCE_DIR}/external/Clipper2/CPP/Clipper2Lib)
+set(CLIPPER2_SOURCES
+    ${CLIPPER2_DIR}/src/clipper.engine.cpp
+    ${CLIPPER2_DIR}/src/clipper.offset.cpp
+    ${CLIPPER2_DIR}/src/clipper.rectclip.cpp
+)
+
+add_library(${LIB_NAME_GUI} OBJECT ${SOURCES} ${CLIPPER2_SOURCES})
+target_include_directories(${LIB_NAME_GUI} PUBLIC ${CLIPPER2_DIR}/include)
 target_link_libraries(
     ${LIB_NAME_GUI} PUBLIC
     QtColorWidgets
